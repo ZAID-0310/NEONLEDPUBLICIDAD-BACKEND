@@ -15,6 +15,8 @@ use Laravel\Sanctum\Http\Middleware\CheckAbilities;
 use Laravel\Sanctum\Http\Middleware\CheckForAnyAbility;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
+use App\Http\Middleware\RemoveXPoweredBy;
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__ . '/../routes/web.php',
@@ -37,7 +39,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // sin capturar y termina en un 500 con página HTML en vez de un 401 JSON.
         $middleware->redirectGuestsTo(fn () => null);
 
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->append(Illuminate\Http\Middleware\HandleCors::class);
+        $middleware->append(\App\Http\Middleware\RemoveXPoweredBy::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, $request) {
@@ -93,8 +97,20 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], $status);
             }
 
+            if ($e instanceof \Illuminate\Database\QueryException || $e instanceof \PDOException) {
+                Log::error('Error de base de datos en API: ' . $e->getMessage(), [
+                    'exception' => $e,
+                    'url'       => $request->fullUrl(),
+                ]);
+
+                return response()->json([
+                    'status'  => 500,
+                    'message' => 'Ha ocurrido un error al procesar la solicitud en la base de datos.',
+                ], 500);
+            }
+
             // Error realmente inesperado: se loguea con traza completa y se
-            // responde 500 en JSON (nunca la página HTML de depuración).
+            // responde 500 en JSON (nunca la página HTML de depuración ni detalles sensibles).
             Log::error('Error no controlado en API: ' . $e->getMessage(), [
                 'exception' => $e,
                 'url'       => $request->fullUrl(),
@@ -102,7 +118,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return response()->json([
                 'status'  => 500,
-                'message' => config('app.debug') ? $e->getMessage() : 'Ha ocurrido un error interno en el servidor.',
+                'message' => config('app.debug') && ! ($e instanceof \Illuminate\Database\QueryException || $e instanceof \PDOException)
+                    ? $e->getMessage()
+                    : 'Ha ocurrido un error interno en el servidor.',
             ], 500);
         });
     })->create();
