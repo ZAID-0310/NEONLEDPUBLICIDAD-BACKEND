@@ -11,14 +11,28 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Laravel\Facades\Image;
+use Illuminate\Http\Request;
 
 class ProductosController extends Controller
 {
-    public function get()
-    {
+    public function get(Request $request){
         try {
-            $productosPaginados = Productos::with('empleado')->orderBy('id_producto', 'asc')->paginate(20);
-            $productosMapeados  = $productosPaginados->getCollection()->map(function ($producto) {
+            // Limita per_page entre 3 y 50 por seguridad
+            $perPage = max(3, min(50, (int) $request->input('per_page', 8)));
+            $search  = $request->input('search');
+
+            $query = Productos::with('empleado')->orderBy('id_producto', 'desc');
+
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nombre', 'like', "%{$search}%")
+                      ->orWhere('descripcion', 'like', "%{$search}%");
+                });
+            }
+
+            $productosPaginados = $query->paginate($perPage);
+
+            $productosMapeados = $productosPaginados->getCollection()->map(function ($producto) {
                 $images = [];
 
                 if ($producto->path_main) {
@@ -60,6 +74,49 @@ class ProductosController extends Controller
             return response()->json(['status' => 500, 'message' => 'Error al obtener los productos', 'error' => $ex->getMessage()], 500);
         }
     }
+
+    /**
+     * Obtiene únicamente id y nombre de los productos activos sin paginación.
+     * Diseñado específicamente para selects/comboboxes (ej. configuración de Pop-Ups).
+     */
+    public function getActivosSelector()
+    {
+        try {
+            $productos = Productos::select('id_producto', 'nombre')
+                ->where('estado', 1)
+                ->orderBy('id_producto', 'asc')
+                ->get();
+
+            return response()->json([
+                'status'  => 200,
+                'success' => true,
+                'data'    => $productos
+            ], 200);
+        } catch (\Exception $ex) {
+            return response()->json([
+                'status'  => 500,
+                'success' => false,
+                'message' => 'Error al obtener la lista de productos activos',
+                'error'   => $ex->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getNombresMap()
+{
+    try {
+        $productos = Productos::select('id_producto', 'nombre')
+            ->orderBy('id_producto', 'asc')
+            ->get();
+
+        return response()->json([
+            'status' => 200,
+            'data'   => $productos
+        ], 200);
+    } catch (\Exception $ex) {
+        return response()->json(['status' => 500, 'message' => $ex->getMessage()], 500);
+    }
+}
 
     public function getById(int $id)
     {
@@ -125,9 +182,16 @@ class ProductosController extends Controller
         try {
             DB::beginTransaction();
 
-            $productoData              = $request->except(['file_main', 'file_background', 'file1', 'file2', 'file3']);
+            $productoData = $request->except(['file_main', 'file_background', 'file1', 'file2', 'file3']);
             $productoData['path_main'] = $productoData['path_background'] = null;
             $productoData['path1']     = $productoData['path2'] = $productoData['path3'] = null;
+
+            // Asignar automáticamente id_empleado, fecha actual y estado = 1 (activo)
+            $productoData['id_empleado'] = $request->input('id_empleado')
+                ?? $request->user()?->empleado?->id_empleado
+                ?? $request->user()?->id_empleado;
+            $productoData['created_at']  = now();
+            $productoData['estado']      = 1;
 
             $producto   = Productos::create($productoData);
             $productoId = $producto->id_producto;
