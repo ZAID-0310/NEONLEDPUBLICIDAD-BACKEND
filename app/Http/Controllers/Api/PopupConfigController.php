@@ -89,6 +89,8 @@ class PopupConfigController extends Controller
             'mobile_opacity'            => 'nullable|integer|min:0|max:100',
             'mobile_alt'                => 'nullable|string|max:80',
             'remove_mobile_image'       => 'nullable|in:0,1',
+            'mobile_title_text'  => 'nullable|string|min:5|max:80',
+            'mobile_button_text' => 'nullable|string|min:2|max:25',
         ];
 
         if ($esCreacion) {
@@ -106,6 +108,8 @@ class PopupConfigController extends Controller
             // Texto (compartido)
             'title_text'  => $request->input('title_text'),
             'button_text' => $request->input('button_text'),
+            'mobile_title_text' => $request->input('mobile_title_text'),
+            'mobile_button_text' => $request->input('mobile_button_text'),
 
             // Desktop
             'title_color'        => $request->input('title_color'),
@@ -258,10 +262,10 @@ class PopupConfigController extends Controller
             if ($error) {
                 return response()->json(['success' => false, 'message' => $error['error']], 500);
             }
-
+            error_log("Updating config with data: " . json_encode($data)); // Debugging line
             $config->fill($data)->save();
             $config->load('producto:id_producto,nombre');
-
+            error_log("CONFIG UPDATED: " . json_encode($config));
             return response()->json([
                 'success' => true,
                 'message' => 'Pop-Up actualizado correctamente',
