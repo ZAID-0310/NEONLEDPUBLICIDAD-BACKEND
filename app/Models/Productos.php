@@ -25,6 +25,7 @@ class Productos extends Model
         'iluminacion_descrip',
         'durabilidad_descrip',
         'estado',
+        'created_at'
     ];
 
     public $timestamps = false;

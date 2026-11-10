@@ -84,7 +84,7 @@ Route::get('/blog_body/{id}', [BlogBodyController::class, 'show']);
 
 Route::get('/modales/send_wat/{id}', [ModalWatController::class, 'sendWat']);
 
-Route::get('/productos/{id}', [ProductosController::class, 'getById']);
+
 Route::get('/productos_compacto', [ProductosController::class, 'getCompact']);
 
 // Pop-Up público
@@ -249,10 +249,13 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // -------------------- PRODUCTOS --------------------
+    Route::middleware('permission:ver-productos')->get('/productos/activos-selector', [ProductosController::class, 'getActivosSelector']);
     Route::middleware('permission:ver-productos')->get('/productos', [ProductosController::class, 'get']);
+    Route::middleware('permission:ver-productos')->get('/productos/nombres-map', [ProductosController::class, 'getNombresMap']);
     Route::middleware('permission:crear-productos')->post('/productos', [ProductosController::class, 'create']);
     Route::middleware('permission:editar-productos')->put('/productos/{id}', [ProductosController::class, 'update']);
     Route::middleware('permission:eliminar-productos')->delete('/productos/{id}', [ProductosController::class, 'destroy']);
+    
 
     // -------------------- PROPUESTAS --------------------
     Route::middleware('permission:ver-propuestas-cliente')->get('/cliente/{id}/propuestas', [PropuestaController::class, 'getAll_Cliente']);
@@ -334,3 +337,5 @@ Route::middleware('auth:sanctum')->group(function () {
             ->whereNumber('id');
     });
 });
+
+Route::get('/productos/{id}', [ProductosController::class, 'getById']);
