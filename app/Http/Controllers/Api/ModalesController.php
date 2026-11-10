@@ -19,7 +19,10 @@ class ModalesController extends Controller
 {
     public function get(Request $request)
     {
-        $modals = modalservicios::orderBy('id_modalservicio', 'asc')->paginate(4);
+        $perPage = (int) $request->query('per_page', 4);
+        $perPage = max(1, min($perPage, 100));
+
+        $modals = modalservicios::orderBy('id_modalservicio', 'asc')->paginate($perPage);
 
         return response()->json($modals, 200);
     }

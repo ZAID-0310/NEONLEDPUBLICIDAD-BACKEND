@@ -17,6 +17,8 @@ class PopupConfig extends Model
         // ── Compartidos (texto) ─────────────────────────────────────────────
         'title_text',
         'button_text',
+        'mobile_title_text',
+        'mobile_button_text',
 
         // ── Desktop ─────────────────────────────────────────────────────────
         'title_color',

@@ -12,9 +12,12 @@ use Illuminate\Support\Facades\Validator;
 
 class ContactanosController extends Controller
 {
-    public function get(Request $request)
+        public function get(Request $request)
     {
-        $contactos = Contactanos::paginate(4);
+        $perPage = (int) $request->query('per_page', 4);
+        $perPage = max(1, min($perPage, 100));
+
+        $contactos = Contactanos::paginate($perPage);
 
         return response()->json($contactos, 200);
     }
