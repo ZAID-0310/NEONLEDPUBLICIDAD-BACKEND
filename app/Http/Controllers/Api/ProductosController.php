@@ -15,7 +15,8 @@ use Illuminate\Http\Request;
 
 class ProductosController extends Controller
 {
-    public function get(Request $request){
+    public function get(Request $request)
+    {
         try {
             // Limita per_page entre 3 y 50 por seguridad
             $perPage = max(3, min(50, (int) $request->input('per_page', 8)));
@@ -26,7 +27,7 @@ class ProductosController extends Controller
             if (!empty($search)) {
                 $query->where(function ($q) use ($search) {
                     $q->where('nombre', 'like', "%{$search}%")
-                      ->orWhere('descripcion', 'like', "%{$search}%");
+                        ->orWhere('descripcion', 'like', "%{$search}%");
                 });
             }
 
@@ -103,20 +104,20 @@ class ProductosController extends Controller
     }
 
     public function getNombresMap()
-{
-    try {
-        $productos = Productos::select('id_producto', 'nombre')
-            ->orderBy('id_producto', 'asc')
-            ->get();
+    {
+        try {
+            $productos = Productos::select('id_producto', 'nombre')
+                ->orderBy('id_producto', 'asc')
+                ->get();
 
-        return response()->json([
-            'status' => 200,
-            'data'   => $productos
-        ], 200);
-    } catch (\Exception $ex) {
-        return response()->json(['status' => 500, 'message' => $ex->getMessage()], 500);
+            return response()->json([
+                'status' => 200,
+                'data'   => $productos
+            ], 200);
+        } catch (\Exception $ex) {
+            return response()->json(['status' => 500, 'message' => $ex->getMessage()], 500);
+        }
     }
-}
 
     public function getById(int $id)
     {
@@ -234,7 +235,6 @@ class ProductosController extends Controller
                 'message' => 'Producto creado exitosamente',
                 'data'    => $producto->load('empleado'),
             ], 201);
-
         } catch (\Exception $ex) {
             DB::rollback();
 
@@ -332,7 +332,6 @@ class ProductosController extends Controller
                 'message' => 'Producto actualizado exitosamente',
                 'data'    => $producto->load('empleado'),
             ], 200);
-
         } catch (ModelNotFoundException $e) {
             DB::rollback();
 
@@ -369,6 +368,39 @@ class ProductosController extends Controller
             DB::rollback();
 
             return response()->json(['status' => 500, 'message' => 'Error al eliminar el producto', 'error' => $ex->getMessage()], 500);
+        }
+    }
+
+    public function updateEstado(Request $request, int $id)
+    {
+        try {
+            $validated = $request->validate([
+                'estado' => 'required|integer|in:0,1',
+            ]);
+
+            $producto = Productos::findOrFail($id);
+            $producto->estado = $validated['estado'];
+            $producto->save();
+
+            return response()->json([
+                'status'  => 200,
+                'message' => $producto->estado ? 'Producto activado' : 'Producto desactivado',
+                'data'    => $producto->only(['id_producto', 'nombre', 'estado']),
+            ], 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status'  => 422,
+                'message' => 'Datos inválidos',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['status' => 404, 'message' => 'Producto no encontrado'], 404);
+        } catch (\Exception $ex) {
+            return response()->json([
+                'status'  => 500,
+                'message' => 'Error al actualizar el estado',
+                'error'   => $ex->getMessage(),
+            ], 500);
         }
     }
 }

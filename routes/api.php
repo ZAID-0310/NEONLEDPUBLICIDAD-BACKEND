@@ -254,6 +254,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:ver-productos')->get('/productos/nombres-map', [ProductosController::class, 'getNombresMap']);
     Route::middleware('permission:crear-productos')->post('/productos', [ProductosController::class, 'create']);
     Route::middleware('permission:editar-productos')->put('/productos/{id}', [ProductosController::class, 'update']);
+    Route::middleware('permission:editar-productos')->patch('/productos/{id}/estado', [ProductosController::class, 'updateEstado']);
     Route::middleware('permission:eliminar-productos')->delete('/productos/{id}', [ProductosController::class, 'destroy']);
     
 
