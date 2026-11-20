@@ -229,6 +229,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Eliminar foto de CUALQUIER empleado (solo admin)
         Route::delete('/empleados/{id}/image', [EmpleadoController::class, 'deleteProfileImage']);
         Route::post('/empleados/{id}/image', [EmpleadoController::class, 'updateProfileImage']);
+        Route::patch('/empleados/{id}/estado', [EmpleadoController::class, 'cambiarEstado']);
     });
 
     // -------------------- ROLES Y PERMISOS (SOLO ADMIN) --------------------

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CambiarEstadoEmpleadoRequest;
 use App\Http\Requests\StoreEmpleadoRequest;
 use App\Http\Requests\UpdateEmpleadoPasswordRequest;
 use App\Http\Requests\UpdateEmpleadoProfileImageRequest;
@@ -29,10 +30,10 @@ class EmpleadoController extends Controller
     {
         $user = Auth::user();
         if (!$user) return false;
-        
+
         $empleado = Empleado::with('rol')->where('id_user', $user->id)->first();
         if (!$empleado) return false;
-        
+
         return strtolower($empleado->rol->nombre) === 'administrador';
     }
 
@@ -116,7 +117,7 @@ class EmpleadoController extends Controller
             $emailExists = Empleado::where('email', $data['email'])
                 ->where('id_empleado', '!=', $empleado->id_empleado)
                 ->exists();
-            
+
             if ($emailExists) {
                 return response()->json([
                     'status'  => 422,
@@ -124,7 +125,7 @@ class EmpleadoController extends Controller
                 ], 422);
             }
             $updateData['email'] = $data['email'];
-            
+
             // Actualizar también el email del usuario asociado
             $user->email = $data['email'];
             $user->save();
@@ -355,6 +356,7 @@ class EmpleadoController extends Controller
                     'dni' => $empleado->dni,
                     'telefono' => $empleado->telefono,
                     'rol' => $empleado->rol->nombre,
+                    'estado' => (bool) $empleado->estado,
                 ];
             });
 
@@ -406,6 +408,7 @@ class EmpleadoController extends Controller
                     'telefono' => $data['telefono'] ?? null,
                     'id_user' => $user->id,
                     'id_rol' => $data['id_rol'],
+                    'estado' => true,
                 ]);
 
                 return compact('user', 'empleado', 'password');
@@ -601,6 +604,39 @@ class EmpleadoController extends Controller
         return response()->json([
             'status' => 200,
             'message' => 'Contraseña actualizada correctamente',
+        ]);
+    }
+
+    public function cambiarEstado(CambiarEstadoEmpleadoRequest $request, int $id)
+    {
+        if (!$this->isAdmin()) {
+            return response()->json([
+                'status' => 403,
+                'message' => 'No tienes permiso para cambiar el estado de empleados',
+            ], 403);
+        }
+
+        $empleado = Empleado::where('id_empleado', $id)->first();
+
+        if (!$empleado) {
+            return response()->json([
+                'status' => 404,
+                'message' => 'Empleado no encontrado',
+            ], 404);
+        }
+
+        $estado = $request->boolean('estado');
+        $empleado->update(['estado' => $estado]);
+
+        return response()->json([
+            'status' => 200,
+            'message' => $estado
+                ? 'Empleado activado correctamente'
+                : 'Empleado desactivado correctamente',
+            'data' => [
+                'id_empleado' => $empleado->id_empleado,
+                'estado'      => $empleado->estado,
+            ],
         ]);
     }
 
