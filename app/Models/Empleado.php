@@ -30,6 +30,10 @@ class Empleado extends Model
         'imagen_perfil_url',
         'id_user',
         'id_rol',
+        'estado',
+    ];
+    protected $casts = [
+        'estado' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -40,6 +44,16 @@ class Empleado extends Model
     public function rol(): BelongsTo
     {
         return $this->belongsTo(Rol::class, 'id_rol', 'id_rol');
+    }
+
+    public function scopeActivos($query)
+    {
+        return $query->where('estado', true);
+    }
+
+    public function scopeInactivos($query)
+    {
+        return $query->where('estado', false);
     }
 
     public function hasSpecialAccess(): bool
